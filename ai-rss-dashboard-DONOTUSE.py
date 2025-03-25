@@ -23,34 +23,6 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 from plotly.subplots import make_subplots
 
-# Initialize NLTK data immediately
-def ensure_nltk_resources():
-    """Make sure required NLTK resources are available"""
-    import nltk
-    import os
-    
-    # Create a directory for NLTK data if it doesn't exist
-    nltk_data_dir = os.path.join(os.path.expanduser('~'), 'nltk_data')
-    os.makedirs(nltk_data_dir, exist_ok=True)
-    
-    # List of required resources
-    required_resources = [
-        ('punkt', 'tokenizers/punkt'),
-        ('stopwords', 'corpora/stopwords')
-    ]
-    
-    # Download resources if not already available
-    for resource, path in required_resources:
-        try:
-            nltk.data.find(path)
-            print(f"NLTK resource '{resource}' is already available.")
-        except LookupError:
-            print(f"Downloading NLTK resource: {resource}")
-            nltk.download(resource, download_dir=nltk_data_dir, quiet=False)
-
-# Call this function to ensure NLTK resources are available
-ensure_nltk_resources()
-
 # Try to load environment variables from .env file if available
 try:
     from dotenv import load_dotenv
@@ -586,29 +558,14 @@ class RSSNewsScraperMultiSource:
 
 # UTILITY FUNCTIONS FOR TEXT ANALYSIS AND CLAUDE API
 
-# Download NLTK resources when needed - UPDATED
+# Download NLTK resources when needed
 def download_nltk_resources():
-    """Download NLTK resources if they're not already available"""
-    import os
-    import nltk
-    
-    # Create a directory for NLTK data if it doesn't exist
-    nltk_data_dir = os.path.join(os.path.expanduser('~'), 'nltk_data')
-    os.makedirs(nltk_data_dir, exist_ok=True)
-    
-    # List of required resources
-    required_resources = [
-        ('punkt', 'tokenizers/punkt'),
-        ('stopwords', 'corpora/stopwords')
-    ]
-    
-    # Download resources if not already available
-    for resource, path in required_resources:
-        try:
-            nltk.data.find(path)
-        except LookupError:
-            print(f"Downloading NLTK resource: {resource}")
-            nltk.download(resource, download_dir=nltk_data_dir, quiet=True)
+    try:
+        nltk.data.find('tokenizers/punkt')
+        nltk.data.find('corpora/stopwords')
+    except LookupError:
+        nltk.download('punkt', quiet=True)
+        nltk.download('stopwords', quiet=True)
 
 # Extract keywords from text
 def extract_keywords(texts, min_word_length=3, max_keywords=50):
@@ -985,10 +942,6 @@ st.set_page_config(
 DATA_DIR = "news_data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Create output directory for summaries if it doesn't exist
-SUMMARIES_DIR = "news_summaries"
-os.makedirs(SUMMARIES_DIR, exist_ok=True)
-
 # Create session state to store data
 if 'news_data' not in st.session_state:
     st.session_state.news_data = None
@@ -1330,13 +1283,7 @@ else:
                         st.session_state.summaries = summaries
                         st.session_state.summary_timestamp = datetime.now()
                         
-                        # Save summaries to file
-                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        summary_file = os.path.join(SUMMARIES_DIR, f"news_summaries_{timestamp}.json")
-                        with open(summary_file, 'w', encoding='utf-8') as f:
-                            json.dump(summaries, f, indent=2)
-                        
-                        st.success(f"Summaries generated successfully and saved to {summary_file}!")
+                        st.success("Summaries generated successfully!")
                     except Exception as e:
                         st.error(f"Error generating summaries: {str(e)}")
         
@@ -1363,66 +1310,7 @@ else:
         else:
             st.info("Click 'Generate Summaries' to create AI-powered analysis of recent news by category.")
 
-# Add command-line argument support for headless operation
+# Run the app
 if __name__ == "__main__":
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='RSS News Dashboard')
-    parser.add_argument('--headless', action='store_true', help='Run in headless mode (no UI)')
-    parser.add_argument('--fetch-only', action='store_true', help='Only fetch and save news data')
-    parser.add_argument('--generate-summaries', action='store_true', help='Generate summaries for latest data')
-    
-    args, unknown = parser.parse_known_args()
-    
-    # If running in headless mode
-    if args.headless:
-        if args.fetch_only:
-            print("Running in headless mode: Fetching RSS feeds...")
-            scraper = RSSNewsScraperMultiSource()
-            scraper.scrape_all_categories()
-            scraper.remove_duplicates()
-            scraper.save_results()
-            print(f"Saved {len(scraper.all_articles)} articles to disk.")
-        
-        if args.generate_summaries:
-            print("Generating summaries for latest data...")
-            # Find the latest data file
-            data_files = get_saved_news_files()
-            if not data_files:
-                print("No data files found.")
-                exit(1)
-            
-            latest_file = data_files[0]
-            print(f"Using latest data file: {latest_file}")
-            
-            # Load the data
-            articles = load_news_file(latest_file)
-            
-            # Get API key
-            api_key = os.environ.get('CLAUDE_API_KEY')
-            if not api_key:
-                print("No Claude API key found in environment variables.")
-                exit(1)
-            
-            # Generate summaries
-            df = pd.DataFrame(articles)
-            target_df = get_previous_day_articles(df, days_back=1)
-            
-            if target_df.empty:
-                print("No articles found for the previous day.")
-                exit(1)
-            
-            print(f"Generating summaries for {len(target_df)} articles...")
-            summaries = get_claude_summary(
-                target_df.to_dict('records'),
-                api_key,
-                max_articles_per_category=15
-            )
-            
-            # Save summaries
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            summary_file = os.path.join(SUMMARIES_DIR, f"news_summaries_{timestamp}.json")
-            with open(summary_file, 'w', encoding='utf-8') as f:
-                json.dump(summaries, f, indent=2)
-            
-            print(f"Saved summaries to {summary_file}")
+    # This code runs when the script is executed directly
+    pass
