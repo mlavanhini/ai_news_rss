@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import os
+import ossource venv/bin/activate
 import time
 import random
 from datetime import datetime, timedelta
